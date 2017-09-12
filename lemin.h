@@ -35,6 +35,8 @@ typedef struct          s_queue
 
 typedef struct          s_lem
 {
+    int                 way_len;
+    int                 *way;
     int                 lem_num;
     int                 rooms_num;
     int                 start_id;

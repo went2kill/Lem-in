@@ -117,7 +117,7 @@ t_queue *new_queue(t_queue *prev, int id)
 
 void add_in_queue(t_queue *q, int id)
 {
-    while (q->next != 0)    //<<--exception
+    while (q->next != 0)
         q = q->next;
     q->next = new_queue(q, id);
 }
@@ -375,7 +375,18 @@ int is_linked()
     return (0);
 }
 
-int get_last(t_queue *q)
+int in_queue(t_queue *queue, int id)
+{
+    while (queue->next)
+    {
+        if (queue->id_room == id)
+            return (1);
+        queue = queue->next;
+    }
+    return (0);
+}
+
+int get_next(t_queue *q)
 {
     int id;
 
@@ -390,11 +401,11 @@ void bfs(t_lem *lem)                              /////
     t_queue *queue;
     int id, i;
 
-    printf("here\n");
     queue = new_queue(NULL, lem->start_id);
     while (queue)
     {
-        id = get_last(queue);
+        id = get_next(queue);
+        printf("get next: %d\n", id);
         queue->is_visited = 1;
         lem->visited[id] = 1;
         if (id == lem->end_id)
@@ -403,10 +414,10 @@ void bfs(t_lem *lem)                              /////
         i = 0;
         while (i < lem->rooms_num)
         {
-            if (lem->ms[id][i] == 1 && lem->visited[i] != 1)
+            if (lem->ms[id][i] == 1 && lem->visited[i] != 1 && !in_queue(queue, i))
             {
                 printf("add to queue %d \n", i);
-                add_in_queue(queue, i);    ////exception->
+                add_in_queue(queue, i);
                 lem->path[i] = id;
             }
             i++;
@@ -428,6 +439,51 @@ void mall(t_lem *lem, int count)
     {
         lem->visited[i] = 0;
         lem->path[i] = 0;
+        i++;
+    }
+}
+
+void print_way(int u, int *p)
+{
+    if (p[u] != u)
+        if (p[u])
+            print_way(p[u], p);
+    printf("%d->", u);
+}
+
+int count_r(int *w, int i)
+{
+    int j;
+
+    j = 0;
+    while (j < i && w[j] != -1)
+        j++;
+    return (j);
+}
+
+void make_way(t_lem *lem, int *path, int *way)
+{
+    int i, j, *w;
+
+    w = (int*)malloc(sizeof(int) * lem->rooms_num);
+    i = -1;
+    while (++i < lem->rooms_num)
+        w[i] = -1;
+    i = lem->end_id;
+    j = 0;
+    while (path[i] != i)                  ////ERROR
+    {
+        if (!path[i])
+            break;
+        w[j] = i;
+        i = path[i];
+    }                                   ///wrond len
+    lem->way_len = j = count_r(w, lem->rooms_num);
+    i = 0;
+    while (i < lem->way_len && j > 0)
+    {
+        way[i] = w[j];
+        j--;
         i++;
     }
 }
@@ -461,9 +517,18 @@ int main()
     printf("%s\n", s);
     bfs(lem);
     int i = 0;
-    while (i < lem->rooms_num)
+//    while (i < lem->rooms_num)
+//    {
+//        printf("%d ", lem->path[i]);
+//        i++;
+//    }
+    printf("\n\n");
+    make_way(lem, lem->path, lem->way);
+    print_way(lem->end_id, lem->path);
+    printf("\n\n");
+        while (i < lem->way_len)
     {
-        printf("%d ", lem->path[i]);
+        printf("%d->", lem->way[i]);
         i++;
     }
     return 0;
