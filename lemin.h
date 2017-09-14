@@ -33,6 +33,15 @@ typedef struct          s_queue
     struct s_queue      *next;
 }                       t_queue;
 
+typedef struct          s_way
+{
+    int                 id;
+    char                *name;
+    int                 lem_num;
+    int                 finish;
+    struct s_way        *next;
+}                       t_way;
+
 typedef struct          s_lem
 {
     int                 way_len;
@@ -46,6 +55,7 @@ typedef struct          s_lem
     int                 *visited;
     int                 *path;
     int                 **ms;
+    t_way               *lets_go;
     t_room              *rooms;
     t_queue             *queue;
     int                 tmp_rx;

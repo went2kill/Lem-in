@@ -238,6 +238,21 @@ int get_id(t_lem *lem, char *str)
     return (-1);
 }
 
+char *get_name(t_lem *lem, int id)
+{
+    t_room *room;
+
+    room = lem->rooms;
+    while (room)
+    {
+        if (room->id == id)
+            return (room->room_name);
+        room = room->next_room;
+    }
+    free(room);
+    return (0);
+}
+
 int is_link(t_lem *lem, char *str)
 {
     char **spl;
@@ -354,27 +369,6 @@ void list_print(t_room *room)
     }
 }
 
-int have_some_links(t_lem *lem, int size, int x, int y)
-{
-    while (y < size)
-    {
-        x = 0;
-        while (x < size)
-        {
-            if (lem->ms[y][x] == 1)
-                return (1);
-            x++;
-        }
-        y++;
-    }
-    return (0);
-}
-
-int is_linked()
-{
-    return (0);
-}
-
 int in_queue(t_queue *queue, int id)
 {
     while (queue->next)
@@ -443,25 +437,7 @@ void mall(t_lem *lem, int count)
     }
 }
 
-void print_way(int u, int *p)
-{
-    if (p[u] != u)
-        if (p[u])
-            print_way(p[u], p);
-    printf("%d->", u);
-}
-
-int count_r(int *w, int i)
-{
-    int j;
-
-    j = 0;
-    while (j < i && w[j] != -1)
-        j++;
-    return (j);
-}
-
-void make_way(t_lem *lem, int *path, int *way)
+int *make_way(t_lem *lem, int *path, int *way)
 {
     int i, j, *w;
 
@@ -471,20 +447,113 @@ void make_way(t_lem *lem, int *path, int *way)
         w[i] = -1;
     i = lem->end_id;
     j = 0;
-    while (path[i] != i)                  ////ERROR
+    while (path[i] != i)
     {
-        if (!path[i])
-            break;
         w[j] = i;
+        j++;
+        if (!path[i])
+        {
+            w[j] = lem->start_id;
+            j++;
+            break;
+        }
         i = path[i];
-    }                                   ///wrond len
-    lem->way_len = j = count_r(w, lem->rooms_num);
-    i = 0;
+    }
+    lem->way_len = j;
+    way = (int*)malloc(sizeof(int) * j);
+    i = -1;
     while (i < lem->way_len && j > 0)
+        way[++i] = w[--j];
+    return (way);
+}
+
+t_way *new_way(int id, char *name)
+{
+    t_way *ret;
+
+    ret = (t_way*)malloc(sizeof(t_way));
+    ret->id = id;
+    ret->name = ft_strdup(name);
+    ret->lem_num = 0;
+    ret->finish = 0;
+    ret->next = 0;
+    return (ret);
+}
+
+t_way *get_way(int *way, t_lem *lem)
+{
+
+    int i;
+    t_way *ret;
+    t_way *r;
+
+    r = new_way(way[1], get_name(lem, way[1]));
+    ret = r;
+    i = 2;
+    while (i < lem->way_len - 1)
     {
-        way[i] = w[j];
-        j--;
+        r->next = new_way(way[i], get_name(lem, way[i]));
+        r = r->next;
         i++;
+    }
+    return (ret);
+}
+
+int is_lem_here(t_way *way)
+{
+    while (way)
+    {
+        if (way->lem_num != 0)
+            return (1);
+        way = way->next;
+    }
+    return (0);
+}
+
+void shift_way(t_way *way, int num)  //////!!!think about it!!!
+{
+    int prev;
+
+    prev = 1;
+    while (way)
+    {
+        if (way->lem_num == num)
+        {
+            way->finish = 1;
+            way->lem_num = 0;
+        }
+        if (way->finish != 1 && way->lem_num < num && prev != 0)
+            way->lem_num++;
+        prev = way->lem_num - 1;
+        way = way->next;
+    }
+
+}
+
+void print_lem(t_way *way, int num)
+{
+    while (way)
+    {
+        if (way->lem_num)
+        {
+            printf("L%d-%s ", way->lem_num, way->name);
+            /*if (way->lem_num == num)
+                way->lem_num = 0;
+            if (way->lem_num < num && way->lem_num != 0)
+                way->lem_num++;*/
+        }
+        way = way->next;
+    }
+    printf("\n");
+}
+
+void go_go_lem(t_way *way, int lem_num, int len)
+{
+    way->lem_num = 1;
+    while (is_lem_here(way))
+    {
+        print_lem(way, lem_num);
+        shift_way(way, lem_num);
     }
 }
 
@@ -516,20 +585,24 @@ int main()
     print_link(lem->ms, lem->rooms_num);
     printf("%s\n", s);
     bfs(lem);
+    printf("\n\n");
+    lem->way = make_way(lem, lem->path, 0);
     int i = 0;
-//    while (i < lem->rooms_num)
-//    {
-//        printf("%d ", lem->path[i]);
-//        i++;
-//    }
-    printf("\n\n");
-    make_way(lem, lem->path, lem->way);
-    print_way(lem->end_id, lem->path);
-    printf("\n\n");
-        while (i < lem->way_len)
+    if (lem->way[0] != lem->start_id || lem->way[lem->way_len - 1] != lem->end_id)
+        error();                            /////!!!!!!!!!!!!!!!!!!!!!!!
+    while (i < lem->way_len)
     {
-        printf("%d->", lem->way[i]);
+        printf("%d|->", lem->way[i]);
         i++;
     }
+    lem->lets_go = get_way(lem->way, lem);
+    t_way *w = lem->lets_go;
+    while (w)
+    {
+        printf("\nid = %d name = %s", w->id, w->name);
+        w = w->next;
+    }
+    printf("\nwaylen %d\n", lem->way_len);
+    go_go_lem(lem->lets_go, lem->lem_num, lem->way_len - 2);
     return 0;
 }
