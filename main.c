@@ -100,6 +100,9 @@ t_lem *new_lem(void)
     ret_lem->rooms->id = -1;
     ret_lem->rooms->rx = -1;
     ret_lem->rooms->ry = -1;
+    ret_lem->start_id = -1;
+    ret_lem->end_id = -1;
+    ret_lem->lem_num = -1;
     return (ret_lem);
 }
 
@@ -158,12 +161,14 @@ int room_ok(t_lem *lem, char *str)
         lem->tmp_ry = ft_atoi(spl[2]);
     while (spl[count_space])
         count_space++;
-    if (count_space != 3)
+    if (count_space != 3 || lem->lem_num == -1)
         return (0);
     return (1);
 }
 
-void is_room(t_lem *lem, char *str) {
+
+void is_room(t_lem *lem)
+{
     t_room *room;
     t_room *pr_room;
 
@@ -179,7 +184,8 @@ void is_room(t_lem *lem, char *str) {
     if (lem->is_link_begin == 1)
         error();
     pr_room = room;
-    if (room->id != -1) {
+    if (room->id != -1)
+    {
         room->next_room = new_room();
         room = room->next_room;
     }
@@ -187,7 +193,8 @@ void is_room(t_lem *lem, char *str) {
     room->rx = lem->tmp_rx;
     room->ry = lem->tmp_ry;
     room->id = pr_room->id + 1;
-    if (lem->is_start == 1) {
+    if (lem->is_start == 1)
+    {
 
         room->is_start = 1;
         lem->start_id = room->id;
@@ -259,11 +266,11 @@ int is_link(t_lem *lem, char *str)
     int x, y;
 
     spl = fft_strsplit(str, '-');
-    if (!spl || spl[0] == 0 || spl[1] == 0)
+    if (!spl || spl[0] == 0 || spl[1] == 0 || lem->start_id == -1 || lem->end_id == -1)
         return (0);
     if (lem->is_link_begin == 0)
         mall_matrix(lem);
-    printf("%s - %s\n", spl[0], spl[1]);
+    ft_printf("%s - %s\n", spl[0], spl[1]);
     if (get_id(lem, spl[0]) == -1 || get_id(lem, spl[1]) == -1)
         error();
     x = get_id(lem, spl[0]);
@@ -305,31 +312,15 @@ void read_input(t_lem *lem, char *str)
     }
     if (room_ok(lem, str))
     {
-        is_room(lem, str);
-        printf("VALID ROOM\n");
+        is_room(lem);
         return;
     }
     if (is_link(lem, str))
-    {
-        printf("LINK OK\n");
         return;
-    }
-    printf("hz cho eto\n");
+    error();
 }
 
-char *get_lem_num(t_lem *lem)
-{
-    char *str;
-
-    get_next_line(0, &str);
-    if (is_digit_str(str))
-        lem->lem_num = ft_atoi(str);
-    else
-        error();
-    return (str);
-}
-
-void strjoin(char **str, char *st)
+void f_strjoin(char **str, char *st)
 {
     char *s;
 
@@ -341,37 +332,26 @@ void strjoin(char **str, char *st)
     free(s);
 }
 
-void print_link(int **ms, int num)
+void    get_lem_num(t_lem *lem, char **s)
 {
-    int i, j;
+    char *str;
 
-    i = 0;
-    j = 0;
-    while (i < num)
+    while (lem->lem_num == -1)
     {
-        j = 0;
-        while (j < num)
-        {
-            printf("%d", ms[i][j]);
-            j++;
-        }
-        printf("\n");
-        i++;
-    }
-}
-
-void list_print(t_room *room)
-{
-    while (room)
-    {
-        printf("\nroom_id = %d  %s   x= %d y= %d is start ->%d<- is end ->%d<- ", room->id, room->room_name, room->rx, room->ry, room->is_start, room->is_end);
-        room = room->next_room;
+        get_next_line(0, &str);
+        f_strjoin(s, str);
+        if (is_digit_str(str)) {
+            if (ft_atoi(str) <= 0)
+                error();
+            lem->lem_num = ft_atoi(str);
+        } else
+            read_input(lem, str);
     }
 }
 
 int in_queue(t_queue *queue, int id)
 {
-    while (queue->next)
+    while (queue)
     {
         if (queue->id_room == id)
             return (1);
@@ -393,31 +373,26 @@ int get_next(t_queue *q)
 void bfs(t_lem *lem)                              /////
 {
     t_queue *queue;
-    int id, i;
+    int id;
+    int i;
 
     queue = new_queue(NULL, lem->start_id);
     while (queue)
     {
         id = get_next(queue);
-        printf("get next: %d\n", id);
         queue->is_visited = 1;
         lem->visited[id] = 1;
         if (id == lem->end_id)
             break;
-
-        i = 0;
-        while (i < lem->rooms_num)
-        {
+        i = -1;
+        while (++i < lem->rooms_num)
             if (lem->ms[id][i] == 1 && lem->visited[i] != 1 && !in_queue(queue, i))
             {
-                printf("add to queue %d \n", i);
                 add_in_queue(queue, i);
                 lem->path[i] = id;
             }
-            i++;
-        }
         if (!queue->next)
-            break;
+            error();
         queue = queue->next;
     }
 }
@@ -427,6 +402,8 @@ void mall(t_lem *lem, int count)
     int  i;
 
     i = 0;
+    if (lem->is_link_begin != 1)
+        error();
     lem->visited = (int*)malloc(sizeof(int) * count);
     lem->path = (int*)malloc(sizeof(int) * count);
     while (i < count)
@@ -449,11 +426,16 @@ int *make_way(t_lem *lem, int *path, int *way)
     j = 0;
     while (path[i] != i)
     {
-        w[j] = i;
-        j++;
+        ft_printf("%d %d\n",w[j], i);
+        if (i != lem->start_id)
+        {
+            w[j] = i;
+            j++;
+        }
         if (!path[i])
         {
             w[j] = lem->start_id;
+            ft_printf("%d %d\n",w[j], i);
             j++;
             break;
         }
@@ -490,7 +472,7 @@ t_way *get_way(int *way, t_lem *lem)
     r = new_way(way[1], get_name(lem, way[1]));
     ret = r;
     i = 2;
-    while (i < lem->way_len - 1)
+    while (i < lem->way_len)
     {
         r->next = new_way(way[i], get_name(lem, way[i]));
         r = r->next;
@@ -510,51 +492,93 @@ int is_lem_here(t_way *way)
     return (0);
 }
 
-void shift_way(t_way *way, int num)  //////!!!think about it!!!
+void shift_way(t_way *way, int lem_num, int curr)
 {
-    int prev;
-
-    prev = 1;
-    while (way)
+    if (curr <= lem_num)
     {
-        if (way->lem_num == num)
-        {
-            way->finish = 1;
+        while (way && curr > 0) {
+            way->lem_num = curr;
+            curr--;
+            way = way->next;
+        }
+        return ;
+    }
+    while (way && curr > lem_num)
+    {
+        if (way->lem_num == lem_num)
             way->lem_num = 0;
-        }
-        if (way->finish != 1 && way->lem_num < num && prev != 0)
+        else if (way->lem_num != 0)
             way->lem_num++;
-        prev = way->lem_num - 1;
         way = way->next;
     }
-
 }
 
-void print_lem(t_way *way, int num)
+void print_lem(t_way *way)
 {
-    while (way)
-    {
-        if (way->lem_num)
-        {
-            printf("L%d-%s ", way->lem_num, way->name);
-            /*if (way->lem_num == num)
-                way->lem_num = 0;
-            if (way->lem_num < num && way->lem_num != 0)
-                way->lem_num++;*/
-        }
-        way = way->next;
-    }
-    printf("\n");
+    if (way->next)
+        print_lem(way->next);
+    if (way->lem_num)
+        ft_printf("L%d-%s ", way->lem_num, way->name);
 }
 
-void go_go_lem(t_way *way, int lem_num, int len)
+void go_go_lem(t_way *way, int lem_num)
 {
-    way->lem_num = 1;
+    int i;
+
+    i = 1;
+    shift_way(way, lem_num, i);
+    i++;
     while (is_lem_here(way))
     {
-        print_lem(way, lem_num);
-        shift_way(way, lem_num);
+        print_lem(way);
+        ft_printf("\n");
+        shift_way(way, lem_num, i);
+        i++;
     }
+}
+
+void print_all_end(t_lem *lem, int id, int lem_num)
+{
+    int i;
+
+    i = 1;
+    while (i <= lem_num)
+    {
+        ft_printf("L%d-%s ", i, get_name(lem, id));
+        i++;
+    }
+}
+
+void show_path(t_lem *lem, int *way, int len)
+{
+    int i = 0;
+
+    ft_printf("Path: ");
+    while (i < len - 1)
+    {
+        ft_printf("%s->", get_name(lem, way[i]));
+        i++;
+    }
+    ft_printf("%s\n", get_name(lem, way[i]));
+}
+
+void show_way_len(int len)
+{
+    ft_printf("Way length: %d\n", len);
+}
+
+void part2(t_lem *lem)
+{
+    mall(lem, lem->rooms_num);
+    bfs(lem);
+    lem->way = make_way(lem, lem->path, 0);
+    show_path(lem, lem->way, lem->way_len);
+    lem->lets_go = get_way(lem->way, lem);
+    show_way_len(lem->way_len);
+    if (lem->way_len == 2)
+        print_all_end(lem, lem->end_id, lem->lem_num);
+    else
+        go_go_lem(lem->lets_go, lem->lem_num);
 }
 
 int main()
@@ -565,44 +589,20 @@ int main()
 
     lem = new_lem();
     s = ft_strnew(1);
-    strjoin(&s, get_lem_num(lem));
-    while (get_next_line(0, &str) && str[0] != '\0')    //////!!!!!!!!
+    get_lem_num(lem, &s);
+    while (get_next_line(0, &str) && str[0] != '\0')   ///!DONT FORGET!!!!
     {
         if (ft_strequ(lem->prev_str, "##start") || ft_strequ(lem->prev_str, "##end"))
                 if (!room_ok(lem, str))
                     error();
         if (lem->prev_str != 0)
             free(lem->prev_str);
-        strjoin(&s, str);
+        f_strjoin(&s, str);
         lem->prev_str = ft_strdup(str);
         if (str[0] == '#' && str[1] == '#' && !ft_strequ(str, "##start") && !ft_strequ(str, "##end"))
             continue;
         read_input(lem, str);
     }
-    mall(lem, lem->rooms_num);
-    list_print(lem->rooms);
-    printf("\n\n");
-    print_link(lem->ms, lem->rooms_num);
-    printf("%s\n", s);
-    bfs(lem);
-    printf("\n\n");
-    lem->way = make_way(lem, lem->path, 0);
-    int i = 0;
-    if (lem->way[0] != lem->start_id || lem->way[lem->way_len - 1] != lem->end_id)
-        error();                            /////!!!!!!!!!!!!!!!!!!!!!!!
-    while (i < lem->way_len)
-    {
-        printf("%d|->", lem->way[i]);
-        i++;
-    }
-    lem->lets_go = get_way(lem->way, lem);
-    t_way *w = lem->lets_go;
-    while (w)
-    {
-        printf("\nid = %d name = %s", w->id, w->name);
-        w = w->next;
-    }
-    printf("\nwaylen %d\n", lem->way_len);
-    go_go_lem(lem->lets_go, lem->lem_num, lem->way_len - 2);
+    part2(lem);
     return 0;
 }
