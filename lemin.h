@@ -13,6 +13,8 @@
 #ifndef LEMIN_H
 #define LEMIN_H
 
+#include "libft/libft.h"
+
 typedef struct          s_room
 {
     char                *room_name;
@@ -62,32 +64,39 @@ typedef struct          s_lem
     char                *tmp_rname;
     char                *prev_str;
     int                 is_link_begin;
+    int                 show_info;
+    int                 show_len;
+    int                 show_path;
+    int                 show_steps;
+
 
 }                       t_lem;
 
-static size_t		words_len(const char *s, char c);
-static size_t		count_w(const char *s, char c);
-static char			*paswd(const char *s, size_t len);
+size_t		words_len(const char *s, char c);
+size_t		count_w(const char *s, char c);
+char			*paswd(const char *s, size_t len);
 char				**fft_strsplit(char const *s, char c);
 void error(void);
 t_room *new_room(void);
 t_lem *new_lem(void);
 t_queue *new_queue(t_queue *prev, int id);
-void add_in_queue(t_queue *q, int id);
-int is_coment(char *str);
+void add_in_queue(t_queue *q, int id, int fl, t_lem *lem);
+int is_comment(char *str);
 int is_digit_str(char *s);
 int room_ok(t_lem *lem, char *str);
 void is_room(t_lem *lem);
+void is_room_part2(t_lem *lem, t_room *room, t_room *pr_room);
 void mall_matrix(t_lem *lem);
 int get_id(t_lem *lem, char *str);
 char *get_name(t_lem *lem, int id);
 int is_link(t_lem *lem, char *str);
 int start_end(t_lem *lem, char *str);
 void read_input(t_lem *lem, char *str);
+void read_part2(t_lem *lem, char *str);
 void f_strjoin(char **str, char *st);
 void    get_lem_num(t_lem *lem, char **s);
 int in_queue(t_queue *queue, int id);
-int get_next(t_queue *q);
+int get_next(t_queue *q, int fl, t_lem *lem);
 void bfs(t_lem *lem);
 void mall(t_lem *lem, int count);
 int *make_way(t_lem *lem, int *path, int *way);
@@ -100,6 +109,8 @@ void go_go_lem(t_way *way, int lem_num);
 void print_all_end(t_lem *lem, int id, int lem_num);
 void show_path(t_lem *lem, int *way, int len);
 void show_way_len(int len);
+void show_steps(int len, int num);
+int do_some(t_lem *lem, int *path, int i, int **w);
 void part2(t_lem *lem);
 
 #endif
